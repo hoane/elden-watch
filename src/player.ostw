@@ -1,0 +1,119 @@
+
+playervar define stamina;
+playervar define stamina_cooldown;
+playervar define halt_time;
+
+rule: "Player: Init"
+Event.OngoingPlayer
+if (EventPlayer().Team() == Team.Team2)
+{
+    stamina = 100;
+    stamina_cooldown = 0;
+    halt_time = 0;
+
+    ChaseVariableAtRate(stamina_cooldown, 0, 1, RateChaseReevaluation.None);
+    ChaseVariableAtRate(stamina, 100, stamina_cooldown == 0 ? 22 : 0, RateChaseReevaluation.DestinationAndRate);
+    ChaseVariableAtRate(halt_time, 0, 1, RateChaseReevaluation.None);
+
+    CreateProgressBarHudText(
+        VisibleTo: EventPlayer(),
+        Value: stamina,
+        Text: "Stamina",
+        Location: Location.Left,
+        SortOrder: 0,
+        ProgressBarColor: Color.Green,
+        TextColor: Color.Green,
+        Reevaluation: ProgressBarHudEvaluation.Values,
+        NonteamSpectators: Spectators.VisibleNever
+    );
+}
+
+rule:  "Player: Stamina Empty"
+Event.OngoingPlayer
+if (EventPlayer().Team() == Team.Team2)
+if (stamina <= 0)
+{
+    SetAbility1Enabled(EventPlayer(), false);
+    SetPrimaryFireEnabled(EventPlayer(), false);
+    SetSecondaryFireEnabled(EventPlayer(), false);
+    SetReloadEnabled(EventPlayer(), false);
+}
+
+rule:  "Player: Stamina Non-Empty"
+Event.OngoingPlayer
+if (EventPlayer().Team() == Team.Team2)
+if (stamina > 0)
+{
+    SetAbility1Enabled(EventPlayer(), true);
+    SetPrimaryFireEnabled(EventPlayer(), true);
+    SetSecondaryFireEnabled(EventPlayer(), true);
+    SetReloadEnabled(EventPlayer(), true);
+}
+
+rule: "Player: Halt Active"
+Event.OngoingPlayer
+if (EventPlayer().Team() == Team.Team2)
+if (halt_time > 0)
+{
+    ForceThrottle(EventPlayer(), 0, 0.5, 0, 0.5, 0, 0.5);
+}
+
+rule: "Player: Halt Inactive"
+Event.OngoingPlayer
+if (EventPlayer().Team() == Team.Team2)
+if (halt_time <= 0)
+{
+    StopForcingThrottle(EventPlayer());
+}
+
+rule:  "Player: Primary Fire"
+Event.OngoingPlayer
+if (EventPlayer().Team() == Team.Team2)
+if (EventPlayer().IsFiringPrimary())
+{
+    drainStamina(28);
+    halt(0.35);
+}
+
+rule:  "Player: Secondary Fire"
+Event.OngoingPlayer
+if (EventPlayer().Team() == Team.Team2)
+if (EventPlayer().IsFiringSecondary())
+{
+    drainStamina(71);
+    halt(0.6);
+}
+
+rule: "Player: Roll Active"
+Event.OngoingPlayer
+if (EventPlayer().Team() == Team.Team2)
+if (EventPlayer().IsUsingAbility1())
+{
+    ForceThrottle(EventPlayer(), 0, 0.5, 0, 0.5, 0, 0.5);
+    drainStamina(18);
+    SetDamageReceived(EventPlayer(), 0);
+}
+
+rule: "Player: Roll Inactive"
+Event.OngoingPlayer
+if (EventPlayer().Team() == Team.Team2)
+if (!EventPlayer().IsUsingAbility1())
+{
+    StopForcingThrottle();
+    SetDamageReceived(EventPlayer(), 100);
+}
+
+void halt(define time) {
+    if (time > halt_time) {
+        halt_time = time;
+    }
+}
+
+void drainStamina(define draw) {
+    if (draw <= stamina) {
+        stamina -= draw;
+    } else {
+        stamina = 0;
+    }
+    stamina_cooldown = 1.3;
+}

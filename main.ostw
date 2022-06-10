@@ -1,0 +1,9 @@
+import "customGameSettings.json";
+import "src/game.ostw";
+import "src/camera.ostw";
+import "src/player.ostw";
+import "src/enemy.ostw";
+
+rule: "global temp" {
+    StopForcingThrottle(AllPlayers());
+}

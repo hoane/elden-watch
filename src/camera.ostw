@@ -1,0 +1,110 @@
+
+playervar define camera_position;
+playervar define camera_target;
+playervar define lock_on_enabled;
+playervar Player lock_on_target;
+
+
+define LOCK_ON_DISTANCE: 25;
+define TARGET_POSITION(Player player): Midpoint(player.Position(), player.EyePosition());
+define HEIGHT(Player player): DistanceBetween(player.EyePosition(), player.Position());
+
+rule: "Player: 3P Camera Team 2"
+Event.OngoingPlayer
+if (EventPlayer().Team() == Team.Team2)
+{
+    StartCamera(
+        EventPlayer(),
+        camera_position,
+        camera_target,
+        20
+    );
+}
+
+rule: "Player: Mccree camera chase"
+Event.OngoingPlayer
+if (EventPlayer().Team() == Team.Team2)
+if (EventPlayer().Hero() == Hero.Cassidy)
+{
+    camera_position = EventPlayer().EyePosition();
+    camera_target = EventPlayer().EyePosition();
+    lock_on_enabled = false;
+    lock_on_target = null;
+
+    ChaseVariableAtRate(
+        camera_position,
+        RayCastHitPosition(
+            EventPlayer().EyePosition(),
+            EventPlayer().EyePosition() +
+            WorldVectorOf(Vector(-0.725, 0.3, 0.00001), EventPlayer(), LocalVector.Rotation) +
+            (lock_on_enabled ?
+                DirectionTowards(EventPlayer().EyePosition(), TARGET_POSITION(lock_on_target)) :
+                EventPlayer().FacingDirection()
+            ) * -3,
+            AllPlayers(Team.Team1),
+            EventPlayer(),
+            false
+        ),
+        100.0,
+        RateChaseReevaluation.DestinationAndRate
+    );
+    ChaseVariableAtRate(
+        camera_target,
+        lock_on_enabled ?
+            TARGET_POSITION(lock_on_target) :
+            (EventPlayer().EyePosition() + EventPlayer().FacingDirection() * 200),
+        100000.0,
+        RateChaseReevaluation.DestinationAndRate
+    );
+}
+
+rule: "Player: Toggle lock-on"
+Event.OngoingPlayer
+if (IsButtonHeld(EventPlayer(), Button.Interact))
+{
+    if (lock_on_enabled) {
+        lock_on_enabled = false;
+        lock_on_target = null;
+        StopFacing(EventPlayer());
+    } else {
+        define candidate_target = PlayerClosestToReticle(EventPlayer(), Team.Team1);
+        if (candidate_target != null) {
+            if (
+                RayCastHitPlayer(camera_position, candidate_target, candidate_target, EmptyArray(), false) == candidate_target &&
+                DistanceBetween(EventPlayer(), candidate_target) <= LOCK_ON_DISTANCE
+            ) {
+                lock_on_target = candidate_target;
+                lock_on_enabled = true;
+                StartFacing(EventPlayer(), lock_on_target.Position() - EventPlayer().Position(), 180, Relative.ToWorld, FacingRev.DirectionAndTurnRate);
+            }
+        }
+    }
+}
+
+rule: "Player: Lock-on reticule"
+Event.OngoingPlayer
+{
+    CreateEffect(
+        VisibleTo: lock_on_enabled ? EventPlayer() : EmptyArray(),
+        Type: Effect.Sphere,
+        Color: Color.White,
+        Position: lock_on_enabled ? lock_on_target.EyePosition() + Up() : Up(),
+        Radius: 0.15,
+        Reevaluation: EffectRev.VisibleToPositionAndRadius
+    );
+}
+
+rule: "debug hud"
+Event.OngoingPlayer
+if (false)
+{
+    CreateHudText(
+        VisibleTo   : EventPlayer(),
+        Header      : <"Camera position: <0>,<1>,<2>", false, RoundToInteger(false), RoundToInteger(true)>,
+        HeaderColor : Color.LimeGreen,
+        Location    : Location.Left,
+        Spectators  : Spectators.VisibleNever,
+        Reevaluation: HudTextRev.String,
+        SortOrder   : 0
+    );
+}

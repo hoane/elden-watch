@@ -1,0 +1,36 @@
+
+enum GameState {
+    Unknown,
+    Waiting,
+    Play,
+    End
+}
+
+globalvar GameState gameState = GameState.Unknown;
+
+rule: "Global: Setup" {
+    DisableInspectorRecording();
+    #DisableAnnouncer();
+    #DisableCompletion();
+    #DisableMusic();
+    #DisableScoring();
+    #SetMatchTime(0);
+    #PauseMatchTime();
+
+    gameState = GameState.Play;
+}
+
+rule: "Start"
+if (gameState == GameState.Waiting)
+if (IsTrueForAll(AllPlayers(), HasSpawned(ArrayElement()) || IsDead(ArrayElement())))
+{
+    Wait(2);
+    gameState = GameState.Play;
+}
+
+rule: "Skip Assembly"
+if (IsInSetup())
+{
+    SetMatchTime(0);
+}
+

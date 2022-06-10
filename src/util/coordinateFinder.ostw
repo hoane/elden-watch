@@ -1,0 +1,113 @@
+import "../../customGameSettings.json";
+
+rule: "Setup"
+{
+    DisableAnnouncer();
+    DisableCompletion();
+    DisableMusic();
+    DisableScoring();
+    SetMatchTime(0);
+    PauseMatchTime();
+}
+
+rule: "Player: Interact Held Speedup"
+Event.OngoingPlayer
+if (IsButtonHeld(EventPlayer(), Button.Interact))
+if (!IsButtonHeld(EventPlayer(), Button.Crouch))
+{
+    SetMoveSpeed(EventPlayer(), 600);
+}
+
+rule: "Player: Interact Not Held Crouch Not Held Normal speed"
+Event.OngoingPlayer
+if (!IsButtonHeld(EventPlayer(), Button.Interact))
+if (!IsButtonHeld(EventPlayer(), Button.Crouch))
+{
+    SetMoveSpeed(EventPlayer(), 300);
+}
+
+rule: "Player: Crouch Held Slowdown"
+Event.OngoingPlayer
+if (!IsButtonHeld(EventPlayer(), Button.Interact))
+if (IsButtonHeld(EventPlayer(), Button.Crouch))
+{
+    SetMoveSpeed(EventPlayer(), 30);
+}
+
+rule: "Player Setup"
+Event.OnPlayerJoin
+{
+    ForcePlayerHero(EventPlayer(), Hero.Ana);
+    //DisableHeroHud(EventPlayer());
+    DisableGameModeHud(EventPlayer());
+    DisableKillFeed(EventPlayer());
+    DisableMessages(EventPlayer());
+    DisableSpectate(EventPlayer());
+    DisableSpectateHUD(EventPlayer());
+    DisableNameplates(EventPlayer());
+    DisableRespawning(EventPlayer());
+    DisableScoreboard(EventPlayer());
+    SetUltimateAbilityEnabled(EventPlayer(), false);
+    SetMeleeEnabled(EventPlayer(), false);
+    SetReloadEnabled(EventPlayer(), false);
+    SetCrouchEnabled(EventPlayer(), false);
+    SetAbility1Enabled(EventPlayer(), false);
+    SetAbility2Enabled(EventPlayer(), false);
+    SetPrimaryFireEnabled(EventPlayer(), false);
+    SetSecondaryFireEnabled(EventPlayer(), false);
+    SetJumpEnabled(EventPlayer(), true);
+    SetDamageReceived(EventPlayer(), 0);
+
+    # Teleport(EventPlayer(), Vector(-143, -3, -100));
+    
+    SetMoveSpeed(EventPlayer(), 300);
+    CreateHudText(
+        VisibleTo: EventPlayer(),
+        Header: <"X: <0>", XOf(PositionOf(EventPlayer()))>,
+        SortOrder: 1
+    );
+    CreateHudText(
+        VisibleTo: EventPlayer(),
+        Header: <"Y: <0>", YOf(PositionOf(EventPlayer()))>,
+        SortOrder: 2
+    );
+    CreateHudText(
+        VisibleTo: EventPlayer(),
+        Header: <"Z: <0>", ZOf(PositionOf(EventPlayer()))>,
+        SortOrder: 3
+    );
+
+    CreateHudText(
+        VisibleTo: EventPlayer(),
+        Header: <"X: <0>", XOf(RayCastHitPosition(EyePosition(EventPlayer()), EyePosition(EventPlayer()) + 10 * FacingDirectionOf(EventPlayer())))>,
+        TextColor: Color.Blue,
+        Location: Location.Right,
+        Reevaluation: HudTextRev.String,
+        SortOrder: 1
+    );
+    CreateHudText(
+        VisibleTo: EventPlayer(),
+        Header: <"Y: <0>", YOf(RayCastHitPosition(EyePosition(EventPlayer()), EyePosition(EventPlayer()) + 10 * FacingDirectionOf(EventPlayer())))>,
+        TextColor: Color.Blue,
+        Location: Location.Right,
+        Reevaluation: HudTextRev.String,
+        SortOrder: 2
+    );
+    CreateHudText(
+        VisibleTo: EventPlayer(),
+        Header: <"Z: <0>", ZOf(RayCastHitPosition(EyePosition(EventPlayer()), EyePosition(EventPlayer()) + 10 * FacingDirectionOf(EventPlayer())))>,
+        TextColor: Color.Blue,
+        Location: Location.Right,
+        Reevaluation: HudTextRev.String,
+        SortOrder: 3
+    );
+
+    CreateEffect(
+        VisibleTo: EventPlayer(),
+        Position: RayCastHitPosition(EyePosition(EventPlayer()), EyePosition(EventPlayer()) + 10 * FacingDirectionOf(EventPlayer())),
+        Type: Effect.Orb,
+        Color: Color.Blue,
+        Reevaluation: EffectRev.PositionAndRadius,
+        Radius: 0.5
+    );
+}

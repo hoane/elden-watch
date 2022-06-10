@@ -1,0 +1,41 @@
+{
+    "Heroes": {
+        "General": {
+            "Enabled Heroes": [
+                "Cassidy"
+            ],
+            "General": {
+                "Ultimate Generation - Passive": 0,
+                "Ultimate Generation - Combat": 0
+            },
+            "Cassidy": {
+                "Combat Roll Cooldown Time": 0
+            }
+        }
+    },
+    "Modes": {
+        "All": {
+            "Game Mode Start": "Immediately",
+            "Hero Limit": "Off",
+            "Respawn As Random Hero": true,
+            "Respawn Time Scalar": 0,
+            "Spawn Health Packs": "Disabled"
+        },
+        "Hybrid": {
+
+            "Enabled": true,
+            "Enabled Maps": [
+                "King's Row (Winter)"
+            ]
+        }
+    },
+    "Lobby": {
+        "Max Team 1 Players": 0,
+        "Max Team 2 Players": 6,
+        "Match Voice Chat": true,
+        "Pause Game On Player Disconnect": true,
+        "Allow Players Who Are In Queue": true,
+        "Return To Lobby": "Never"
+    },
+    "Description": "= EldenWatch =\n\nCreated by depth1stsearch\n\nhttps://github.com/hoane/elden-watch"
+}
