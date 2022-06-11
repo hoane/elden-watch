@@ -1,0 +1,31 @@
+playervar define slow_time;
+playervar define max_speed;
+
+rule: "Mob: Init"
+Event.OngoingPlayer
+{
+    slow_time = 0;
+    max_speed = 1;
+    ChaseVariableAtRate(slow_time, 0, 1, RateChaseReevaluation.None);
+}
+
+rule: "Mob: Slow Active"
+Event.OngoingPlayer
+if (slow_time > 0)
+{
+    ForceThrottle(EventPlayer(), 0, max_speed, 0, max_speed, 0, max_speed);
+}
+
+rule: "Mob: Slow Inactive"
+Event.OngoingPlayer
+if (slow_time <= 0)
+{
+    StopForcingThrottle(EventPlayer());
+}
+
+void apply_slow(define time, define speed) {
+    if (time > slow_time) {
+        slow_time = time;
+        max_speed = speed;
+    }
+}

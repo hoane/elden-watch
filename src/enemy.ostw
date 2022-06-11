@@ -1,20 +1,44 @@
+import "mob.ostw";
 import "game.ostw";
 
 enum EnemyType {
     BASIC
 }
 
+enum PatrolState {
+    WAIT,
+    APPROACH,
+    RETURN
+}
+
+enum ActionState {
+    NONE,
+    BLOCK,
+    PREP_STRIKE,
+    STRIKE,
+    RECOVER_STRIKE
+}
+
 globalvar define enemy_slot;
 
+playervar PatrolState patrol_state;
+playervar ActionState action_state;
 playervar Vector home;
 playervar EnemyType enemy_type;
-playervar define strike_cooldown;
+playervar define action_delay;
 
 define MAX_DAMAGE_RANGE: 25;
-define BASIC_GUARD_NOTICE_RANGE: 25;
-define BASIC_GUARD_APPROACH_RANGE: 15;
+define BASIC_BLOCK_RANGE: 25;
+define BASIC_APPROACH_RANGE: 15;
+define BASIC_STRIKE_RANGE: 5;
 define BASIC_SPEED: 0.75;
-define APPROACH_EPSILON: 4;
+define APPROACH_EPSILON: 2;
+define STRIKE_RANGE: 5;
+define ROTATION_SPEED: 180;
+define PREP_STRIKE_DELAY: 0.25;
+define STRIKE_DURATION: 0.5;
+define RECOVER_STRIKE_DELAY: 0.5;
+define BLOCK_DELAY: 1.5;
 
 rule: "Initialize Enemies"
 if (gameState == GameState.Play)
@@ -25,16 +49,18 @@ if (gameState == GameState.Play)
 rule: "Basic Enemy: Init"
 Event.OngoingPlayer
 if (EventPlayer().Team() == Team.Team1)
-if (EventPlayer().enemy_type == EnemyType.BASIC)
+if (enemy_type == EnemyType.BASIC)
 {
+    patrol_state = PatrolState.WAIT;
+    action_state = ActionState.NONE;
     StartScalingPlayer(EventPlayer(), 1.5, false);
     SetMaxHealth(EventPlayer(), 200);
-    strike_cooldown = 0;
-    ChaseVariableAtRate(strike_cooldown, 0, 1, RateChaseReevaluation.None);
+    action_delay = 0;
+    ChaseVariableAtRate(action_delay, 0, 1, RateChaseReevaluation.None);
 
     CreateHudText(
         VisibleTo   : AllPlayers(),
-        Header      : <"debug: <0>, <1>, <2>, <3>", EventPlayer().enemy_type, EventPlayer().home, ClosestPlayerTo(EventPlayer(), Team.Team2).DistanceTo(EventPlayer()), strike_cooldown>,
+        Header      : <"Patrol State: <0>\nAction State: <1>\nAction Delay: <2>", patrol_state, action_state, action_delay>,
         HeaderColor : Color.LimeGreen,
         Location    : Location.Left,
         Spectators  : Spectators.VisibleNever,
@@ -43,7 +69,7 @@ if (EventPlayer().enemy_type == EnemyType.BASIC)
     );
 }
 
-rule: "Basic Enemy: Damage Reduction"
+rule: "Enemy: Damage Reduction"
 Event.OnDamageTaken
 if (EventPlayer().Team() == Team.Team1)
 if (EventPlayer().DistanceTo(Attacker()) >= MAX_DAMAGE_RANGE)
@@ -51,89 +77,120 @@ if (EventPlayer().DistanceTo(Attacker()) >= MAX_DAMAGE_RANGE)
     Heal(EventPlayer(), null, EventDamage());
 }
 
-rule: "Basic Enemy: Guard Notice"
+rule: "Basic Enemy: Patrol State: Wait -> Approach"
 Event.OngoingPlayer
 if (EventPlayer().Team() == Team.Team1)
-if (EventPlayer().enemy_type == EnemyType.BASIC)
-if (ClosestPlayerTo(home, Team.Team2).DistanceTo(home) < BASIC_GUARD_NOTICE_RANGE)
+if (enemy_type == EnemyType.BASIC)
+if (patrol_state == PatrolState.WAIT)
+if (ClosestPlayerTo(home, Team.Team2).DistanceTo(home) <= BASIC_APPROACH_RANGE)
 {
-    StartFacing(EventPlayer(), ClosestPlayerTo(EventPlayer(), Team.Team2).Position() - EventPlayer().Position(), 90, Relative.ToWorld, FacingRev.DirectionAndTurnRate);
+    patrol_state = PatrolState.APPROACH;
+    StartThrottleInDirection(EventPlayer(), ClosestPlayerTo(EventPlayer(), Team.Team2).Position() - EventPlayer().Position(), BASIC_SPEED, Relative.ToWorld, ThrottleBehavior.ReplaceExistingThrottle, ThrottleRev.DirectionAndMagnitude);
 }
 
-rule: "Basic Enemy: Guard Forget"
+rule: "Basic Enemy: Patrol State: Approach -> Return"
 Event.OngoingPlayer
 if (EventPlayer().Team() == Team.Team1)
-if (EventPlayer().enemy_type == EnemyType.BASIC)
-if (ClosestPlayerTo(home, Team.Team2).DistanceTo(home) >= BASIC_GUARD_NOTICE_RANGE)
+if (enemy_type == EnemyType.BASIC)
+if (patrol_state == PatrolState.APPROACH)
+if (ClosestPlayerTo(home, Team.Team2).DistanceTo(home) > BASIC_APPROACH_RANGE)
 {
+    patrol_state = PatrolState.RETURN;
+    StartThrottleInDirection(EventPlayer(), home - EventPlayer().Position(), BASIC_SPEED, Relative.ToWorld, ThrottleBehavior.ReplaceExistingThrottle, ThrottleRev.DirectionAndMagnitude);
+    PressButton(EventPlayer(), Button.Ability2);
+}
+
+rule: "Basic Enemy: Patrol State: Return -> Wait"
+Event.OngoingPlayer
+if (EventPlayer().Team() == Team.Team1)
+if (enemy_type == EnemyType.BASIC)
+if (patrol_state == PatrolState.RETURN)
+if (EventPlayer().DistanceTo(home) <= APPROACH_EPSILON)
+{
+    patrol_state = PatrolState.WAIT;
+    StopThrottleInDirection(EventPlayer());
+}
+
+rule: "Basic Enemy: Action State: None -> Block"
+Event.OngoingPlayer
+if (EventPlayer().Team() == Team.Team1)
+if (enemy_type == EnemyType.BASIC)
+if (action_state == ActionState.NONE)
+if (ClosestPlayerTo(EventPlayer(), Team.Team2).DistanceTo(EventPlayer()) <= BASIC_BLOCK_RANGE)
+{
+    action_state = ActionState.BLOCK;
+    StartFacing(EventPlayer(), ClosestPlayerTo(EventPlayer(), Team.Team2).Position() - EventPlayer().EyePosition(), ROTATION_SPEED, Relative.ToWorld, FacingRev.DirectionAndTurnRate);
+    StartHoldingButton(EventPlayer(), Button.SecondaryFire);
+}
+
+rule: "Basic Enemy: Action State: Block -> None"
+Event.OngoingPlayer
+if (EventPlayer().Team() == Team.Team1)
+if (enemy_type == EnemyType.BASIC)
+if (action_state == ActionState.BLOCK)
+if (ClosestPlayerTo(EventPlayer(), Team.Team2).DistanceTo(EventPlayer()) > BASIC_BLOCK_RANGE)
+{
+    action_state = ActionState.NONE;
     StopFacing(EventPlayer());
     StopHoldingButton(EventPlayer(), Button.SecondaryFire);
 }
 
-rule: "Basic Enemy: Guard Approach"
+rule: "Basic Enemy: Action State: Block -> Prep Strike"
 Event.OngoingPlayer
 if (EventPlayer().Team() == Team.Team1)
-if (EventPlayer().enemy_type == EnemyType.BASIC)
-if (ClosestPlayerTo(home, Team.Team2).DistanceTo(home) < BASIC_GUARD_APPROACH_RANGE)
+if (enemy_type == EnemyType.BASIC)
+if (action_state == ActionState.BLOCK)
+if (ClosestPlayerTo(EventPlayer(), Team.Team2).DistanceTo(EventPlayer()) <= BASIC_STRIKE_RANGE)
+if (action_delay <= 0)
 {
-    StartThrottleInDirection(EventPlayer(), ClosestPlayerTo(EventPlayer(), Team.Team2).Position() - EventPlayer().Position(), BASIC_SPEED, Relative.ToWorld, ThrottleBehavior.ReplaceExistingThrottle, ThrottleRev.DirectionAndMagnitude);
+    action_state = ActionState.PREP_STRIKE;
+    action_delay = PREP_STRIKE_DELAY;
+    StopHoldingButton(EventPlayer(), Button.SecondaryFire);
 }
 
-rule: "Basic Enemy: Guard Return"
+rule: "Basic Enemy: Action State: Prep Strike -> Strike"
 Event.OngoingPlayer
 if (EventPlayer().Team() == Team.Team1)
-if (EventPlayer().enemy_type == EnemyType.BASIC)
-if (ClosestPlayerTo(home, Team.Team2).DistanceTo(home) >= BASIC_GUARD_APPROACH_RANGE)
-if (EventPlayer().DistanceTo(home) > APPROACH_EPSILON)
+if (enemy_type == EnemyType.BASIC)
+if (action_state == ActionState.PREP_STRIKE)
+if (action_delay <= 0)
 {
-    StartThrottleInDirection(EventPlayer(), home - EventPlayer().Position(), BASIC_SPEED, Relative.ToWorld, ThrottleBehavior.ReplaceExistingThrottle, ThrottleRev.DirectionAndMagnitude);
+    StartHoldingButton(EventPlayer(), Button.PrimaryFire);
+    Wait(RandomReal(0.25, 3.0), WaitBehavior.IgnoreCondition);
+    StopHoldingButton(EventPlayer(), Button.PrimaryFire);
+    action_state = ActionState.STRIKE;
 }
 
-rule: "Basic Enemy: Guard Rest"
+rule: "Basic Enemy: Action State: Strike -> Recover Strike"
 Event.OngoingPlayer
 if (EventPlayer().Team() == Team.Team1)
-if (EventPlayer().enemy_type == EnemyType.BASIC)
-if (ClosestPlayerTo(home, Team.Team2).DistanceTo(home) >= BASIC_GUARD_APPROACH_RANGE)
-if (EventPlayer().DistanceTo(home) <= APPROACH_EPSILON)
+if (enemy_type == EnemyType.BASIC)
+if (action_state == ActionState.STRIKE)
+if (!EventPlayer().IsFiringPrimary())
 {
-    StopThrottleInDirection(EventPlayer());
+    action_state = ActionState.RECOVER_STRIKE;
+    action_delay = RECOVER_STRIKE_DELAY;
 }
 
-rule: "Basic Enemy: Start Defend"
+rule: "Basic Enemy: Action State: Recover Strike -> Block"
 Event.OngoingPlayer
 if (EventPlayer().Team() == Team.Team1)
-if (EventPlayer().enemy_type == EnemyType.BASIC)
-if (ClosestPlayerTo(EventPlayer(), Team.Team2).DistanceTo(EventPlayer()) < BASIC_GUARD_NOTICE_RANGE || (ClosestPlayerTo(EventPlayer(), Team.Team2).DistanceTo(EventPlayer()) < APPROACH_EPSILON && strike_cooldown <= 0))
+if (enemy_type == EnemyType.BASIC)
+if (action_state == ActionState.RECOVER_STRIKE)
+if (action_delay <= 0)
 {
+    action_state = ActionState.BLOCK;
+    action_delay = BLOCK_DELAY;
     StartHoldingButton(EventPlayer(), Button.SecondaryFire);
 }
 
-rule: "Basic Enemy: Start Strike"
+rule: "Basic Enemy: Slow During Primary Fire"
 Event.OngoingPlayer
 if (EventPlayer().Team() == Team.Team1)
-if (EventPlayer().enemy_type == EnemyType.BASIC)
-if (ClosestPlayerTo(EventPlayer(), Team.Team2).DistanceTo(EventPlayer()) <= APPROACH_EPSILON)
-if (strike_cooldown <= 0)
+if (EventPlayer().IsFiringPrimary())
 {
-    StopHoldingButton(EventPlayer(), Button.SecondaryFire);
-    StartHoldingButton(EventPlayer(), Button.PrimaryFire);
-    define form = RandomReal(0, 1);
-    if (form <= 0.5) {
-        strike_cooldown = RandomReal(3, 4);
-    } else {
-        strike_cooldown = 0;
-    }
+    apply_slow(0.15, 0.75);
 }
-
-rule: "Basic Enemy: Stop Strike"
-Event.OngoingPlayer
-if (EventPlayer().Team() == Team.Team1)
-if (EventPlayer().enemy_type == EnemyType.BASIC)
-if (strike_cooldown > 0 || (ClosestPlayerTo(EventPlayer(), Team.Team2).DistanceTo(EventPlayer()) > APPROACH_EPSILON))
-{
-    StopHoldingButton(EventPlayer(), Button.PrimaryFire);
-}
-
 
 Player create_enemy(Vector location, EnemyType enemy_type) {
     enemy_slot += 1;

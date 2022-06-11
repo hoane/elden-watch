@@ -1,6 +1,7 @@
 import "customGameSettings.json";
 import "src/game.ostw";
 import "src/camera.ostw";
+import "src/mob.ostw";
 import "src/player.ostw";
 import "src/enemy.ostw";
 
