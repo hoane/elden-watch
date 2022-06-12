@@ -4,7 +4,21 @@ import "src/camera.ostw";
 import "src/mob.ostw";
 import "src/player.ostw";
 import "src/enemy.ostw";
+import "src/cutscene.ostw";
 
-rule: "global temp" {
-    StopForcingThrottle(AllPlayers());
+rule: "Server Stats"
+Event.OngoingPlayer
+{
+    CreateHudText(
+        VisibleTo: HostPlayer(),
+        Text: <"<0>: <1>\n<2>: <3>\n<4>: <5>\n",
+            "Server Load", ServerLoad(),
+            "Server Load Average", ServerLoadAverage(),
+            "Server Load Peak", ServerLoadPeak()
+        >,
+        TextColor: Color.White,
+        Location: Location.Right,
+        Reevaluation: HudTextRev.String,
+        SortOrder: 6
+    );
 }

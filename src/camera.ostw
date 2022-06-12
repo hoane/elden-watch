@@ -1,3 +1,4 @@
+import "game.ostw";
 
 playervar define camera_position;
 playervar define camera_target;
@@ -11,6 +12,7 @@ define HEIGHT(Player player): DistanceBetween(player.EyePosition(), player.Posit
 
 rule: "Player: 3P Camera Team 2"
 Event.OngoingPlayer
+if (game_state == GameState.Play)
 if (EventPlayer().Team() == Team.Team2)
 {
     StartCamera(
@@ -21,10 +23,10 @@ if (EventPlayer().Team() == Team.Team2)
     );
 }
 
-rule: "Player: Mccree camera chase"
+rule: "Player: Camera chase"
 Event.OngoingPlayer
+if (game_state == GameState.Play)
 if (EventPlayer().Team() == Team.Team2)
-if (EventPlayer().Hero() == Hero.Cassidy)
 {
     camera_position = EventPlayer().EyePosition();
     camera_target = EventPlayer().EyePosition();
@@ -60,6 +62,7 @@ if (EventPlayer().Hero() == Hero.Cassidy)
 
 rule: "Player: Toggle lock-on"
 Event.OngoingPlayer
+if (game_state == GameState.Play)
 if (IsButtonHeld(EventPlayer(), Button.Interact))
 {
     if (lock_on_enabled) {

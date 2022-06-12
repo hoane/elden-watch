@@ -4,8 +4,9 @@ playervar define stamina;
 playervar define stamina_cooldown;
 
 define MAX_STAMINA: 100;
-define STAMINA_REGEN_PS: 26;
-define STAMINA_REGEN_DELAY: 0.9;
+define STAMINA_REGEN_PS: 29;
+define STAMINA_REGEN_DELAY: 1.0;
+define PLAYER_POISE: 11;
 
 rule: "Player: Init"
 Event.OngoingPlayer
@@ -13,6 +14,7 @@ if (EventPlayer().Team() == Team.Team2)
 {
     stamina = 0;
     stamina_cooldown = 0;
+    poise = PLAYER_POISE;
 
     ChaseVariableAtRate(stamina_cooldown, 0, 1, RateChaseReevaluation.None);
     ChaseVariableAtRate(stamina, MAX_STAMINA, stamina_cooldown == 0 ? STAMINA_REGEN_PS : 0, RateChaseReevaluation.DestinationAndRate);
@@ -28,7 +30,6 @@ if (EventPlayer().Team() == Team.Team2)
         Reevaluation: ProgressBarHudEvaluation.Values,
         NonteamSpectators: Spectators.VisibleNever
     );
-    // SetStatus(EventPlayer(), null, Status.Invincible, 9999);
 }
 
 rule:  "Player: Stamina Empty"
@@ -68,7 +69,7 @@ if (EventPlayer().Team() == Team.Team2)
 if (EventPlayer().IsFiringSecondary())
 {
     drainStamina(71);
-    apply_slow(0.6, 0.5);
+    apply_slow(0.8, 0.1);
 }
 
 rule: "Player: Roll Active"

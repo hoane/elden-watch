@@ -1,0 +1,86 @@
+import "game.ostw";
+
+globalvar Vector cutscene_camera_pos;
+globalvar Vector cutscene_camera_look;
+globalvar Vector cutscene_camera_dir;
+globalvar define cutscene_camera_vel;
+globalvar Player util_ana;
+
+rule: "Cutscene setup"
+if (false)
+if (game_state == GameState.Play)
+{
+    CreateDummyBot(Hero.Ana, Team.Team1, 6, Vector(-150.5, -2.7, 16.6), Left());
+    util_ana = PlayersInSlot(6, Team.Team1);
+    SetUltimateAbilityEnabled(util_ana, true);
+    SetUltimateCharge(util_ana, 100);
+}
+
+rule: "Skip to cutscene"
+Event.OngoingPlayer
+if (game_state == GameState.Play)
+if (EventPlayer().IsButtonHeld(Button.Jump))
+{
+    game_state = GameState.Cutscene;
+}
+
+rule: "Enter Cutscene"
+if (game_state == GameState.Cutscene)
+{
+    ForceThrottle(AllPlayers(), 0, 0, 0, 0, 0, 0);
+    Teleport(boss_enemy, Vector(-145.5, -2.7, 23.6));
+    SetStatus(boss_enemy, null, Status.KnockedDown, 6);
+    Wait(1);
+
+    cutscene_camera_pos = Vector(-139, 1.0, 22);
+    cutscene_camera_dir = Down();
+    cutscene_camera_vel = 0;
+    cutscene_camera_look = boss_enemy.EyePosition();
+    SetFacing(boss_enemy, cutscene_camera_pos - boss_enemy.EyePosition(), Relative.ToWorld);
+    ChaseVariableAtRate(cutscene_camera_look, boss_enemy.EyePosition(), 1000, RateChaseReevaluation.DestinationAndRate);
+    ChaseVariableAtRate(cutscene_camera_pos, cutscene_camera_pos + cutscene_camera_dir, cutscene_camera_vel, RateChaseReevaluation.DestinationAndRate);
+
+    StopCamera(AllPlayers());
+    StartCamera(
+        AllPlayers(),
+        cutscene_camera_pos,
+        cutscene_camera_look,
+        0
+    );
+
+    Wait(1);
+
+    cutscene_camera_dir = Down();
+    ChaseVariableAtRate(cutscene_camera_vel, 0.4, 1, RateChaseReevaluation.None);
+
+    Wait(2);
+
+    StopChasingVariable(cutscene_camera_vel);
+    SmallMessage(AllPlayers(), "Beware, coward...");
+    SetSlowMotion(40);
+    ChaseVariableAtRate(cutscene_camera_dir, Normalize(Midpoint(boss_enemy.EyePosition(), boss_enemy.Position()) - cutscene_camera_pos), 1, RateChaseReevaluation.DestinationAndRate);
+
+    Wait(1.9);
+
+    SetSlowMotion(100);
+
+    ChaseVariableAtRate(cutscene_camera_vel, 0.6, 1, RateChaseReevaluation.None);
+
+    define boss_size = 1.3;
+    StopScalingPlayer(boss_enemy);
+    StartScalingPlayer(boss_enemy, boss_size, true);
+    ChaseVariableAtRate(boss_size, 1.8, 0.1, RateChaseReevaluation.DestinationAndRate);
+
+    StartHealOverTime(boss_enemy, null, 5, 100);
+    Wait(5);
+
+    StopChasingVariable(cutscene_camera_vel);
+    cutscene_camera_vel = 0;
+
+    Wait(1);
+
+    SmallMessage(AllPlayers(), "I live.");
+    Wait(1);
+    SetStatus(boss_enemy, null, Status.Burning, 9999);
+    AddHealthPoolToPlayer(boss_enemy, HealthType.Shields, 400, false, false);
+}

@@ -9,7 +9,12 @@
                 "Ultimate Generation - Combat": 0
             },
             "Cassidy": {
-                "Combat Roll Cooldown Time": 2
+                "Combat Roll Cooldown Time": 2,
+                "Flashbang": false
+            },
+            "Reinhardt": {
+                "Projectile Speed": 200,
+                "Rocket Hammer Knockback Scalar": 0
             }
         }
     },
@@ -26,7 +31,9 @@
             "Enabled": true,
             "Enabled Maps": [
                 "King's Row (Winter)"
-            ]
+            ],
+            "Payload Speed Modifier": 400,
+            "Capture Speed Modifier": 400
         }
     },
     "Lobby": {

@@ -1,13 +1,37 @@
 import "../../customGameSettings.json";
 
+playervar define cursor_distance;
+
 rule: "Setup"
 {
     DisableAnnouncer();
     DisableCompletion();
     DisableMusic();
     DisableScoring();
-    SetMatchTime(0);
-    PauseMatchTime();
+}
+
+rule: "Player: Ultimate Held Retract Cursor"
+Event.OngoingPlayer
+if (IsButtonHeld(EventPlayer(), Button.Ultimate))
+if (!IsButtonHeld(EventPlayer(), Button.Ability2))
+{
+    ChaseVariableAtRate(cursor_distance, 0, 4, RateChaseReevaluation.None);
+}
+
+rule: "Player: Ability 2 Held Retract Cursor"
+Event.OngoingPlayer
+if (!IsButtonHeld(EventPlayer(), Button.Ultimate))
+if (IsButtonHeld(EventPlayer(), Button.Ability2))
+{
+    ChaseVariableAtRate(cursor_distance, 100, 4, RateChaseReevaluation.None);
+}
+
+rule: "Player: Still Cursor"
+Event.OngoingPlayer
+if (!IsButtonHeld(EventPlayer(), Button.Ultimate))
+if (!IsButtonHeld(EventPlayer(), Button.Ability2))
+{
+    StopChasingVariable(cursor_distance);
 }
 
 rule: "Player: Interact Held Speedup"
@@ -34,9 +58,16 @@ if (IsButtonHeld(EventPlayer(), Button.Crouch))
     SetMoveSpeed(EventPlayer(), 30);
 }
 
+rule: "Skip Assembly"
+if (IsInSetup())
+{
+    SetMatchTime(0);
+}
+
 rule: "Player Setup"
 Event.OnPlayerJoin
 {
+    cursor_distance = 10;
     ForcePlayerHero(EventPlayer(), Hero.Ana);
     //DisableHeroHud(EventPlayer());
     DisableGameModeHud(EventPlayer());
@@ -63,51 +94,38 @@ Event.OnPlayerJoin
     SetMoveSpeed(EventPlayer(), 300);
     CreateHudText(
         VisibleTo: EventPlayer(),
-        Header: <"X: <0>", XOf(PositionOf(EventPlayer()))>,
+        Header: <"Position\nX: <0>\nY: <1>\nZ: <2>", XOf(PositionOf(EventPlayer())), YOf(PositionOf(EventPlayer())), ZOf(PositionOf(EventPlayer()))>,
+        Location: Location.Left,
+        Reevaluation: HudTextRev.String,
         SortOrder: 1
-    );
-    CreateHudText(
-        VisibleTo: EventPlayer(),
-        Header: <"Y: <0>", YOf(PositionOf(EventPlayer()))>,
-        SortOrder: 2
-    );
-    CreateHudText(
-        VisibleTo: EventPlayer(),
-        Header: <"Z: <0>", ZOf(PositionOf(EventPlayer()))>,
-        SortOrder: 3
     );
 
     CreateHudText(
         VisibleTo: EventPlayer(),
-        Header: <"X: <0>", XOf(RayCastHitPosition(EyePosition(EventPlayer()), EyePosition(EventPlayer()) + 10 * FacingDirectionOf(EventPlayer())))>,
+        Header: <"Cursor\nDistance: <3>\nX: <0>\nY: <1>\nZ: <2>", XOf(CURSOR()), YOf(CURSOR()), ZOf(CURSOR()), cursor_distance>,
         TextColor: Color.Blue,
         Location: Location.Right,
         Reevaluation: HudTextRev.String,
         SortOrder: 1
     );
+
     CreateHudText(
         VisibleTo: EventPlayer(),
-        Header: <"Y: <0>", YOf(RayCastHitPosition(EyePosition(EventPlayer()), EyePosition(EventPlayer()) + 10 * FacingDirectionOf(EventPlayer())))>,
+        Header: <"Facing\nX: <0>\nY: <1>\nZ: <2>", XOf(EventPlayer().FacingDirection()), YOf(EventPlayer().FacingDirection()), ZOf(EventPlayer().FacingDirection())>,
         TextColor: Color.Blue,
         Location: Location.Right,
         Reevaluation: HudTextRev.String,
-        SortOrder: 2
-    );
-    CreateHudText(
-        VisibleTo: EventPlayer(),
-        Header: <"Z: <0>", ZOf(RayCastHitPosition(EyePosition(EventPlayer()), EyePosition(EventPlayer()) + 10 * FacingDirectionOf(EventPlayer())))>,
-        TextColor: Color.Blue,
-        Location: Location.Right,
-        Reevaluation: HudTextRev.String,
-        SortOrder: 3
+        SortOrder: 1
     );
 
     CreateEffect(
         VisibleTo: EventPlayer(),
-        Position: RayCastHitPosition(EyePosition(EventPlayer()), EyePosition(EventPlayer()) + 10 * FacingDirectionOf(EventPlayer())),
+        Position: CURSOR(),
         Type: Effect.Orb,
         Color: Color.Blue,
         Reevaluation: EffectRev.PositionAndRadius,
-        Radius: 0.5
+        Radius: 0.25
     );
 }
+
+define CURSOR(): RayCastHitPosition(EyePosition(EventPlayer()), EyePosition(EventPlayer()) + cursor_distance * FacingDirectionOf(EventPlayer()));

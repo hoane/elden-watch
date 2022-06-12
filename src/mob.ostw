@@ -1,12 +1,23 @@
+enum PoiseStatus {
+    STUNNED,
+    KNOCKED_DOWN
+}
+
 playervar define slow_time;
 playervar define max_speed;
+playervar define poise_damage;
+playervar define poise;
+playervar PoiseStatus poise_status = PoiseStatus.STUNNED;
 
 rule: "Mob: Init"
 Event.OngoingPlayer
 {
     slow_time = 0;
     max_speed = 1;
+    poise_damage = 0;
+
     ChaseVariableAtRate(slow_time, 0, 1, RateChaseReevaluation.None);
+    ChaseVariableAtRate(poise_damage, 0, 1, RateChaseReevaluation.None);
 }
 
 rule: "Mob: Slow Active"
@@ -21,6 +32,22 @@ Event.OngoingPlayer
 if (slow_time <= 0)
 {
     StopForcingThrottle(EventPlayer());
+}
+
+rule: "Player: Poise Damage"
+Event.OnDamageTaken
+if (!HasStatus(EventPlayer(), Status.Stunned) && !HasStatus(EventPlayer(), Status.KnockedDown))
+{
+
+    poise_damage += 10;
+    if (poise_damage > poise) {
+        poise_damage = 0;
+        if (poise_status == PoiseStatus.STUNNED) {
+            SetStatus(EventPlayer(), Attacker(), Status.Stunned, 1);
+        } else {
+            SetStatus(EventPlayer(), Attacker(), Status.KnockedDown, 3);
+        }
+    }
 }
 
 void apply_slow(define time, define speed) {
