@@ -4,6 +4,7 @@ import "game.ostw";
 enum EnemyType {
     NONE,
     BASIC,
+    TWIN,
     BOSS
 }
 
@@ -53,9 +54,10 @@ define BLOCK_DELAY: 1.5;
 rule: "Initialize Enemies"
 if (game_state == GameState.Play)
 {
-    //create_enemy(Vector(-18, 0, -32), BehaviorType.GUARD);
-    boss_enemy = create_enemy(Vector(-18, 0, -32), EnemyType.BOSS);
-    //create_enemy(Vector(-145.5, -2.7, 23.6), BehaviorType.BOSS);
+    create_enemy(Vector(-18, 0, -32), EnemyType.BASIC);
+    create_enemy(Vector(-86.7, 0.7, -23.3), EnemyType.TWIN);
+    create_enemy(Vector(-86, 0.7, -27.1), EnemyType.TWIN);
+    boss_enemy = create_enemy(Vector(-145.5, -2.7, 23.6), EnemyType.BOSS);
 }
 
 // START Basic Enemy
@@ -222,6 +224,27 @@ if (EventPlayer().IsFiringPrimary())
     apply_slow(0.15, 0.75);
 }
 
+// START Twin Enemy
+
+rule: "Twin Enemy: Init"
+Event.OngoingPlayer
+if (EventPlayer().Team() == Team.Team1)
+if (enemy_type == EnemyType.TWIN)
+{
+    behavior_type = BehaviorType.GUARD;
+    poise = 100;
+    poise_status = PoiseStatus.KNOCKED_DOWN;
+    patrol_state = PatrolState.WAIT;
+    action_state = ActionState.NONE;
+
+    // SetStatus(EventPlayer(), null, Status.Frozen, 9999);
+    StartScalingPlayer(EventPlayer(), 1.0, false);
+    RemoveAllHealthPoolsFromPlayer(EventPlayer());
+    SetMaxHealth(EventPlayer(), 150);
+    action_delay = 0;
+    ChaseVariableAtRate(action_delay, 0, 1, RateChaseReevaluation.None);
+}
+
 // START Boss Enemy
 
 rule: "Boss Enemy: Init"
@@ -238,7 +261,7 @@ if (enemy_type == EnemyType.BOSS)
     SetStatus(EventPlayer(), null, Status.Unkillable, 9999);
     StartScalingPlayer(EventPlayer(), 1.3, false);
     RemoveAllHealthPoolsFromPlayer(EventPlayer());
-    SetMaxHealth(EventPlayer(), 50);
+    SetMaxHealth(EventPlayer(), 1000);
     action_delay = 0;
     ChaseVariableAtRate(action_delay, 0, 1, RateChaseReevaluation.None);
 }
@@ -257,7 +280,11 @@ if (EventPlayer().Health() <= 1)
 
 Player create_enemy(Vector location, EnemyType enemy_type) {
     enemy_slot += 1;
-    CreateDummyBot(Hero.Reinhardt, Team.Team1, enemy_slot, location);
+    if (enemy_type == EnemyType.TWIN) {
+        CreateDummyBot(Hero.Brigitte, Team.Team1, enemy_slot, location);
+    } else {
+        CreateDummyBot(Hero.Reinhardt, Team.Team1, enemy_slot, location);
+    }
     define enemy = PlayersInSlot(enemy_slot, Team.Team1);
     enemy.home = location;
     enemy.enemy_type = enemy_type;

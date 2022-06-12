@@ -19,16 +19,6 @@ rule: "Global: Setup" {
     #PauseMatchTime();
 
     game_state = GameState.Waiting;
-
-    CreateHudText(
-        VisibleTo   : AllPlayers(),
-        Header      : <"Game State: <0>", game_state>,
-        HeaderColor : Color.Purple,
-        Location    : Location.Left,
-        Spectators  : Spectators.VisibleNever,
-        Reevaluation: HudTextRev.VisibleToAndString,
-        SortOrder   : 0
-    );
 }
 
 rule: "Skip Assembly"

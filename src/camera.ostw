@@ -60,6 +60,7 @@ if (EventPlayer().Team() == Team.Team2)
     );
 }
 
+// RayCastHitPlayer(camera_position, candidate_target, candidate_target, EmptyArray(), false) == candidate_target &&
 rule: "Player: Toggle lock-on"
 Event.OngoingPlayer
 if (game_state == GameState.Play)
@@ -73,7 +74,6 @@ if (IsButtonHeld(EventPlayer(), Button.Interact))
         define candidate_target = PlayerClosestToReticle(EventPlayer(), Team.Team1);
         if (candidate_target != null) {
             if (
-                RayCastHitPlayer(camera_position, candidate_target, candidate_target, EmptyArray(), false) == candidate_target &&
                 DistanceBetween(EventPlayer(), candidate_target) <= LOCK_ON_DISTANCE
             ) {
                 lock_on_target = candidate_target;
@@ -94,6 +94,20 @@ Event.OngoingPlayer
         Position: lock_on_enabled ? lock_on_target.EyePosition() + Up() : Up(),
         Radius: 0.15,
         Reevaluation: EffectRev.VisibleToPositionAndRadius
+    );
+
+    CreateHudText(
+        VisibleTo: EventPlayer(),
+        Header: <
+            "lock: <0>\ntarget: <1>\ncandidate: <2>\ncast: <3>\ndist: <4>",
+            lock_on_enabled,
+            lock_on_target,
+            PlayerClosestToReticle(EventPlayer(), Team.Team1),
+            RayCastHitPlayer(camera_position, PlayerClosestToReticle(EventPlayer(), Team.Team1), PlayerClosestToReticle(EventPlayer(), Team.Team1), EmptyArray(), false),
+            DistanceBetween(EventPlayer(), PlayerClosestToReticle(EventPlayer(), Team.Team1))
+        >,
+        Location: Location.Right,
+        Reevaluation: HudTextRev.String
     );
 }
 

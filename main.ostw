@@ -8,6 +8,7 @@ import "src/cutscene.ostw";
 
 rule: "Server Stats"
 Event.OngoingPlayer
+if (EventPlayer() == HostPlayer())
 {
     CreateHudText(
         VisibleTo: HostPlayer(),
