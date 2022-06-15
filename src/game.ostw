@@ -8,6 +8,9 @@ enum GameState {
 
 globalvar GameState game_state;
 globalvar Player boss_enemy;
+globalvar define infinite_stamina = WorkshopSettingToggle("Debug Settings", "Infinite Stamina", false);
+globalvar define hero_damage = WorkshopSettingInteger("Debug Settings", "Hero Damage", 100, 0, 10000);
+globalvar define instructions_hud;
 
 rule: "Global: Setup" {
     DisableInspectorRecording();
@@ -19,6 +22,21 @@ rule: "Global: Setup" {
     #PauseMatchTime();
 
     game_state = GameState.Waiting;
+    CreateHudText(
+        VisibleTo: AllPlayers(),
+        Header: <"Controls\n\n<0>: Light Attack\n<1>: Heavy Attack\n<2>: Roll (avoid damage)\n<3>: Toggle Lock-on\n\nHold <4> to skip setup",
+            Button.PrimaryFire,
+            Button.SecondaryFire,
+            Button.Ability1,
+            Button.Interact,
+            Button.Crouch
+        >,
+        TextColor: Color.White,
+        Location: Location.Top,
+        Reevaluation: HudTextRev.VisibleTo,
+        SortOrder: 4
+    );
+    instructions_hud = LastTextID();
 }
 
 rule: "Skip Assembly"
@@ -27,5 +45,15 @@ if (CountOf(AllPlayers(Team.Team2)) >= 1)
 if (IsTrueForAll(AllPlayers(Team.Team2), HasSpawned(ArrayElement()) && IsButtonHeld(ArrayElement(), Button.Crouch)))
 {
     SetMatchTime(0);
+    DestroyHudText(instructions_hud);
+    instructions_hud = null;
     game_state = GameState.Play;
+}
+
+rule: "Start Play"
+if (game_state == GameState.Play)
+{
+    if (instructions_hud != null) {
+        DestroyHudText(instructions_hud);
+    }
 }

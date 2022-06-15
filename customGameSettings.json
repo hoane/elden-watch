@@ -26,15 +26,16 @@
             "Hero Limit": "Off",
             "Respawn As Random Hero": true,
             "Respawn Time Scalar": 0,
-            "Spawn Health Packs": "Disabled"
+            "Spawn Health Packs": "Enabled",
+            "Health Pack Respawn Time Scalar": 500
         },
         "Hybrid": {
-
+            "Competitive Rules": false,
             "Enabled": true,
             "Enabled Maps": [
                 "King's Row (Winter)"
             ],
-            "Payload Speed Modifier": 400,
+            "Payload Speed Modifier": 200,
             "Capture Speed Modifier": 400
         }
     },

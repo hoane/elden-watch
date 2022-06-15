@@ -39,8 +39,8 @@ playervar BehaviorType behavior_type;
 playervar define action_delay;
 
 define MAX_DAMAGE_RANGE: 25;
-define GUARD_BLOCK_RANGE: 25;
-define GUARD_APPROACH_RANGE: 15;
+define GUARD_BLOCK_RANGE: 30;
+define GUARD_APPROACH_RANGE: 20;
 define GUARD_STRIKE_RANGE: 5;
 define GUARD_SPEED: 0.75;
 define APPROACH_EPSILON: 2;
@@ -68,34 +68,28 @@ if (EventPlayer().Team() == Team.Team1)
 if (enemy_type == EnemyType.BASIC)
 {
     behavior_type = BehaviorType.GUARD;
-    poise = 100;
+    poise = 100 * CountOf(AllPlayers(Team.Team2));
     poise_status = PoiseStatus.KNOCKED_DOWN;
     patrol_state = PatrolState.WAIT;
     action_state = ActionState.NONE;
 
     StartScalingPlayer(EventPlayer(), 1.0, false);
-    SetMaxHealth(EventPlayer(), 200);
+    SetMaxHealth(EventPlayer(), 400 + 200 * CountOf(AllPlayers(Team.Team2)));
     RemoveAllHealthPoolsFromPlayer(EventPlayer());
     action_delay = 0;
     ChaseVariableAtRate(action_delay, 0, 1, RateChaseReevaluation.None);
 
-    CreateHudText(
-        VisibleTo   : AllPlayers(),
-        Header      : <"Patrol State: <0>\nAction State: <1>\nAction Delay: <2>", patrol_state, action_state, action_delay>,
-        HeaderColor : Color.LimeGreen,
-        Location    : Location.Left,
-        Spectators  : Spectators.VisibleNever,
-        Reevaluation: HudTextRev.VisibleToAndString,
-        SortOrder   : 1
-    );
 }
 
 rule: "Enemy: Damage Reduction"
 Event.OnDamageTaken
 if (EventPlayer().Team() == Team.Team1)
-if (EventPlayer().DistanceTo(Attacker()) >= MAX_DAMAGE_RANGE)
 {
-    Heal(EventPlayer(), null, EventDamage());
+    define range = EventPlayer().DistanceTo(Attacker());
+    if (range >= MAX_DAMAGE_RANGE) {
+        Heal(EventPlayer(), null, EventDamage());
+    } else {
+    }
 }
 
 rule: "Guard Behavior: Patrol State: Approach -> Return"
@@ -232,7 +226,7 @@ if (EventPlayer().Team() == Team.Team1)
 if (enemy_type == EnemyType.TWIN)
 {
     behavior_type = BehaviorType.GUARD;
-    poise = 100;
+    poise = 100 * CountOf(AllPlayers(Team.Team2));
     poise_status = PoiseStatus.KNOCKED_DOWN;
     patrol_state = PatrolState.WAIT;
     action_state = ActionState.NONE;
@@ -240,7 +234,7 @@ if (enemy_type == EnemyType.TWIN)
     // SetStatus(EventPlayer(), null, Status.Frozen, 9999);
     StartScalingPlayer(EventPlayer(), 1.0, false);
     RemoveAllHealthPoolsFromPlayer(EventPlayer());
-    SetMaxHealth(EventPlayer(), 150);
+    SetMaxHealth(EventPlayer(), 150 + 50*CountOf(AllPlayers(Team.Team2)));
     action_delay = 0;
     ChaseVariableAtRate(action_delay, 0, 1, RateChaseReevaluation.None);
 }
@@ -253,7 +247,7 @@ if (EventPlayer().Team() == Team.Team1)
 if (enemy_type == EnemyType.BOSS)
 {
     behavior_type = BehaviorType.GUARD;
-    poise = 100;
+    poise = 150 * CountOf(AllPlayers(Team.Team2));
     poise_status = PoiseStatus.KNOCKED_DOWN;
     patrol_state = PatrolState.WAIT;
     action_state = ActionState.NONE;
@@ -261,7 +255,7 @@ if (enemy_type == EnemyType.BOSS)
     SetStatus(EventPlayer(), null, Status.Unkillable, 9999);
     StartScalingPlayer(EventPlayer(), 1.3, false);
     RemoveAllHealthPoolsFromPlayer(EventPlayer());
-    SetMaxHealth(EventPlayer(), 1000);
+    SetMaxHealth(EventPlayer(), 800 + 200*CountOf(AllPlayers(Team.Team2)));
     action_delay = 0;
     ChaseVariableAtRate(action_delay, 0, 1, RateChaseReevaluation.None);
 }

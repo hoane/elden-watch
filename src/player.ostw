@@ -1,7 +1,9 @@
 import "mob.ostw";
+import "game.ostw";
 
 playervar define stamina;
 playervar define stamina_cooldown;
+playervar define heavy_stance;
 
 define MAX_STAMINA: 100;
 define STAMINA_REGEN_PS: 29;
@@ -14,10 +16,16 @@ if (EventPlayer().Team() == Team.Team2)
 {
     stamina = 0;
     stamina_cooldown = 0;
+    heavy_stance = false;
     poise = PLAYER_POISE;
 
     ChaseVariableAtRate(stamina_cooldown, 0, 1, RateChaseReevaluation.None);
     ChaseVariableAtRate(stamina, MAX_STAMINA, stamina_cooldown == 0 ? STAMINA_REGEN_PS : 0, RateChaseReevaluation.DestinationAndRate);
+    SetSecondaryFireEnabled(EventPlayer(), false);
+    SetAbility2Enabled(EventPlayer(), false);
+    SetHealingReceived(EventPlayer(), false);
+
+    SetDamageDealt(EventPlayer(), hero_damage);
 
     CreateProgressBarHudText(
         VisibleTo: EventPlayer(),
@@ -30,6 +38,7 @@ if (EventPlayer().Team() == Team.Team2)
         Reevaluation: ProgressBarHudEvaluation.Values,
         NonteamSpectators: Spectators.VisibleNever
     );
+
 }
 
 rule:  "Player: Stamina Empty"
@@ -39,7 +48,6 @@ if (stamina <= 0)
 {
     SetAbility1Enabled(EventPlayer(), false);
     SetPrimaryFireEnabled(EventPlayer(), false);
-    SetSecondaryFireEnabled(EventPlayer(), false);
     SetReloadEnabled(EventPlayer(), false);
 }
 
@@ -50,7 +58,6 @@ if (stamina > 0)
 {
     SetAbility1Enabled(EventPlayer(), true);
     SetPrimaryFireEnabled(EventPlayer(), true);
-    SetSecondaryFireEnabled(EventPlayer(), true);
     SetReloadEnabled(EventPlayer(), true);
 }
 
@@ -63,10 +70,10 @@ if (EventPlayer().IsFiringPrimary())
     apply_slow(0.35, 0.5);
 }
 
-rule: "Player: Secondary Fire"
+rule: "Player: Enter Heavy Stance"
 Event.OngoingPlayer
 if (EventPlayer().Team() == Team.Team2)
-if (EventPlayer().IsFiringSecondary())
+if (EventPlayer().IsButtonHeld(Button.SecondaryFire))
 {
     drainStamina(71);
     apply_slow(0.8, 0.1);
@@ -90,10 +97,12 @@ if (!EventPlayer().IsUsingAbility1())
 }
 
 void drainStamina(define draw) {
-    if (draw <= stamina) {
-        stamina -= draw;
-    } else {
-        stamina = 0;
+    if (!infinite_stamina) {
+        if (!draw <= stamina) {
+            stamina -= draw;
+        } else {
+            stamina = 0;
+        }
+        stamina_cooldown = STAMINA_REGEN_DELAY;
     }
-    stamina_cooldown = STAMINA_REGEN_DELAY;
 }

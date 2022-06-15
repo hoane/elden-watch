@@ -18,6 +18,7 @@ if (game_state == GameState.Play)
 
 rule: "Skip to cutscene"
 Event.OngoingPlayer
+if (false)
 if (game_state == GameState.Play)
 if (EventPlayer().IsButtonHeld(Button.Jump))
 {
@@ -27,12 +28,13 @@ if (EventPlayer().IsButtonHeld(Button.Jump))
 rule: "Enter Cutscene"
 if (game_state == GameState.Cutscene)
 {
-    ForceThrottle(AllPlayers(), 0, 0, 0, 0, 0, 0);
-    Teleport(boss_enemy, Vector(-145.5, -2.7, 23.6));
-    SetStatus(boss_enemy, null, Status.KnockedDown, 6);
-    Wait(1);
+    SetStatus(AllPlayers(Team.Team2), null, Status.Frozen, 9999);
 
-    cutscene_camera_pos = Vector(-139, 1.0, 22);
+    define boss_pos = DistanceBetween(PayloadPosition(), Vector(-145.5, -2.7, 23.6)) < 20 ? PayloadPosition() : Vector(-145.5, -2.7, 23.6);
+    Teleport(boss_enemy, boss_pos + Up());
+    SetStatus(boss_enemy, null, Status.KnockedDown, 6);
+
+    cutscene_camera_pos = boss_pos + Vector(0, 5, 10);
     cutscene_camera_dir = Down();
     cutscene_camera_vel = 0;
     cutscene_camera_look = boss_enemy.EyePosition();
@@ -48,7 +50,7 @@ if (game_state == GameState.Cutscene)
         0
     );
 
-    Wait(1);
+    Wait(2);
 
     cutscene_camera_dir = Down();
     ChaseVariableAtRate(cutscene_camera_vel, 0.4, 1, RateChaseReevaluation.None);
